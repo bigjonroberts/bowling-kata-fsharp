@@ -45,21 +45,27 @@ module Game =
     |> List.ofArray
     |> List.collect id
 
+  let (|StrikeThrown|_|) (game: Game) =
+    match game with
+    | Strike :: tail ->
+      let addScore (score: int) =
+        match tail with
+        | Bonus x :: Bonus y :: [] -> score + 10 + x + y
+        | Spare _ :: _ -> (score + 20)
+        | Strike :: Strike :: _ -> (score + 30)
+        | Strike :: Spare x :: _
+        | Strike :: Partial (x,_) :: _
+        | Strike :: Bonus x :: _ -> (score + 20 + x)
+        | Partial (x,y) :: _ -> (score + x + y)
+        | _ -> failwithf "Invalid remaining frames: %A" tail
+      Some (addScore, tail)
+    | _ -> None
+
   let rec private calc (game: Game) (score: int) =
     match game with
     | []
     | Bonus _ :: _ -> score
-    | Strike :: tail ->
-      match tail with
-      | Bonus x :: Bonus y :: [] -> score + 10 + x + y
-      | Spare _ :: _ -> (score + 20)
-      | Strike :: Strike :: _ -> (score + 30)
-      | Strike :: Spare x :: _
-      | Strike :: Partial (x,_) :: _
-      | Strike :: Bonus x :: _ -> (score + 20 + x)
-      | Partial (x,y) :: _ -> (score + x + y)
-      | _ -> failwithf "Invalid remaining frames: %A" game
-      |> calc tail
+    | StrikeThrown (addScore, tail) -> score |> addScore |> calc tail
     | Spare _ :: tail ->
       match tail with
       | Bonus x :: [] -> score + 10 + x
@@ -69,6 +75,7 @@ module Game =
       | _ -> failwithf "Invalid remaining frames: %A" game
       |> calc tail
     | Partial (x,y) :: tail -> calc tail (score + x + y)
+    | _ -> failwithf "Invalid remaining frames: %A" game
 
   let calculate (game: Game) = calc game 0
 
