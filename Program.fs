@@ -76,12 +76,12 @@ module Game =
 
   let rec private calc (game: Game) (score: int) =
     match game with
-    | []
-    // into bonus frames, so no additional scoring
-    | Bonus _ :: _ -> score
     | StrikeThrown (addScore, tail) -> score |> addScore |> calc tail
     | SpareThrown (addScore, tail) -> score |> addScore |> calc tail
     | Partial (x,y) :: tail -> calc tail (score + x + y)
+    | []
+    // into bonus frames, so no additional scoring
+    | Bonus _ :: _ -> score
     | _ -> failwithf "Invalid remaining frames: %A" game
 
   let calculate (game: Game) = calc game 0
