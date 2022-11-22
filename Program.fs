@@ -51,12 +51,12 @@ module Game =
       let addScore (score: int) =
         match tail with
         | Bonus x :: Bonus y :: [] -> score + 10 + x + y
-        | Spare _ :: _ -> (score + 20)
-        | Strike :: Strike :: _ -> (score + 30)
+        | Spare _ :: _ -> score + 20
+        | Strike :: Strike :: _ -> score + 30
         | Strike :: Spare x :: _
         | Strike :: Partial (x,_) :: _
-        | Strike :: Bonus x :: _ -> (score + 20 + x)
-        | Partial (x,y) :: _ -> (score + x + y)
+        | Strike :: Bonus x :: _ -> score + 20 + x
+        | Partial (x,y) :: _ -> score + x + y
         | _ -> failwithf "Invalid remaining frames: %A" game
       Some (addScore, tail)
     | _ -> None
@@ -67,18 +67,18 @@ module Game =
       let addScore (score: int) =
         match tail with
         | Bonus x :: [] -> score + 10 + x
-        | Strike :: _ -> (score + 20)
+        | Strike :: _ -> score + 20
         | Spare x :: _
-        | Partial (x,_) :: _ -> (score + 10 + x)
+        | Partial (x,_) :: _ -> score + 10 + x
         | _ -> failwithf "Invalid remaining frames: %A" game
       Some (addScore, tail)
     | _ -> None
 
   let rec private calc (game: Game) (score: int) =
     match game with
-    | StrikeThrown (addScore, tail) -> score |> addScore |> calc tail
-    | SpareThrown (addScore, tail) -> score |> addScore |> calc tail
-    | Partial (x,y) :: tail -> calc tail (score + x + y)
+    | StrikeThrown (addScore, tail) -> addScore score |> calc tail
+    | SpareThrown (addScore, tail) -> addScore score |> calc tail
+    | Partial (x,y) :: tail -> score + x + y |> calc tail
     | []
     // into bonus frames, so no additional scoring
     | Bonus _ :: _ -> score
