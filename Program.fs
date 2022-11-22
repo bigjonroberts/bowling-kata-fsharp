@@ -49,24 +49,26 @@ module Game =
     match game with
     | []
     | Bonus _ :: _ -> score
-    | Strike :: Bonus x :: Bonus y :: [] -> score + 10 + x + y
-    | Spare _ :: Bonus x :: [] -> score + 10 + x
-    | Strike :: Spare _ :: _ -> (score + 20)
-    | Strike :: Strike :: Strike :: _ -> (score + 30)
-    | Strike :: Strike :: Spare x :: _
-    | Strike :: Strike :: Partial (x,_) :: _
-    | Strike :: Strike :: Bonus x :: _ -> (score + 20 + x)
-    | Strike :: Partial (x,y) :: _ -> (score + x + y)
-    | Spare _ :: Strike :: _ -> (score + 20)
-    | Spare _ :: Spare x :: _
-    | Spare _ :: Partial (x,_) :: _ -> (score + 10 + x)
-    | Partial (x,y) :: _ -> (score + x + y)
-    | xs -> failwithf "Invalid remaining frames: %A" xs
-    |>
-      if List.isEmpty game then
-        id
-      else
-        game |> List.tail |> calc
+    | Strike :: tail ->
+      match tail with
+      | Bonus x :: Bonus y :: [] -> score + 10 + x + y
+      | Spare _ :: _ -> (score + 20)
+      | Strike :: Strike :: _ -> (score + 30)
+      | Strike :: Spare x :: _
+      | Strike :: Partial (x,_) :: _
+      | Strike :: Bonus x :: _ -> (score + 20 + x)
+      | Partial (x,y) :: _ -> (score + x + y)
+      | _ -> failwithf "Invalid remaining frames: %A" game
+      |> calc tail
+    | Spare _ :: tail ->
+      match tail with
+      | Bonus x :: [] -> score + 10 + x
+      | Strike :: _ -> (score + 20)
+      | Spare x :: _
+      | Partial (x,_) :: _ -> (score + 10 + x)
+      | _ -> failwithf "Invalid remaining frames: %A" game
+      |> calc tail
+    | Partial (x,y) :: tail -> calc tail (score + x + y)
 
   let calculate (game: Game) = calc game 0
 
