@@ -5,6 +5,7 @@ type Frame =
   | Spare of int
   | Partial of int * int
   | Bonus of int
+  //| TenthFrame of int * ((int * int option) option)
 
 module Frame =
   let private toInt =
@@ -12,13 +13,14 @@ module Frame =
     | '-' -> 0
     | 'X' -> 10
     | c -> c |> System.Char.GetNumericValue |> int
-  let parse =
-    List.ofSeq
-    >> function
-        | 'X' :: [] -> Strike
-        | c :: '/' :: [] -> c |> toInt |> Spare
-        | x :: y :: [] -> Partial (toInt x, toInt y)
-        | xs -> failwithf "Invalid Frame: %A" xs
+  let parse (s: string) =
+    List.ofSeq s
+    |> fun chrs ->
+      match chrs with
+      | 'X' :: [] -> Strike
+      | c :: '/' :: [] -> c |> toInt |> Spare
+      | x :: y :: [] -> Partial (toInt x, toInt y)
+      | xs -> failwithf "Invalid Frame: %A" xs
   let parseBonus (xs: char seq) =
     xs
     |> List.ofSeq
@@ -29,15 +31,34 @@ module Frame =
           [ Bonus x; Bonus (10 - x) ]
         | x :: y :: [] -> [ Bonus (toInt x); Bonus (toInt y) ]
         | c :: [] -> [ c |> toInt |> Bonus ]
-        | xs -> failwithf "Invalid Frame: %A" xs
+        | xs -> failwithf "Invalid Bonus Frame: %A" xs
+
+  let private rand = System.Random()
+
+  let random () =
+    match rand.Next(10) with
+    | 10 -> Strike
+    | x ->
+      match (x, rand.Next(10 - x)) with
+      | (x,y) when x+y=10 -> Spare x
+      | (x,y) -> Partial (x,y)
+
+  type BonusFrameCount = | Zero | One | Two
+
+  let randomBonus (numFrames: BonusFrameCount) =
+    match numFrames with
+    | Zero -> []
+    | One -> [ 10 |> rand.Next |> Bonus ]
+    | Two ->
+      let x = rand.Next(10)
+      [ Bonus x; Bonus (rand.Next(10 - x)) ]
 
 type Game = Frame list    
 
 module Game =
   let parse (s: string) : Game =
     s.Split(' ')
-    |> Array.indexed
-    |> Array.map (fun (i,s') ->
+    |> Array.mapi (fun i s' ->
       if i < 10 then
         [ Frame.parse s' ]
       else
